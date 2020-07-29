@@ -1,10 +1,13 @@
 package com.traffic.police.services;
 
 
+import com.traffic.police.models.ControlNumbersEntity;
 import com.traffic.police.models.CrimeDescriptionEntity;
 import com.traffic.police.models.OffencesEntity;
+import com.traffic.police.repos.ControlNumber;
 import com.traffic.police.repos.CrimeRepo;
 import com.traffic.police.repos.OffencesRepo;
+import com.traffic.police.repos.UsersRepo;
 import com.traffic.police.utils.GeneralRequest;
 import com.traffic.police.utils.GeneralResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +26,10 @@ public class CrimeService {
     CrimeRepo crimeRepo;
     @Autowired
     OffencesRepo offencesRepo;
+    @Autowired
+    UsersRepo usersRepo;
+    @Autowired
+    ControlNumber controlNumber;
     GeneralResponse response;
 
     private static String getRadom(int size) {
@@ -42,10 +49,9 @@ public class CrimeService {
         response = new GeneralResponse();
         CrimeDescriptionEntity crime = generalRequest.getPayload();
         CrimeDescriptionEntity offence = null;
-        System.out.println("Case Number: " + crime.getCasenumber());
-        CrimeDescriptionEntity descritionEntity = new CrimeDescriptionEntity();
+        System.out.println("Case Number: " + crime.casenumber);
         try {
-            offence = crimeRepo.findByCasenumber(crime.getCasenumber());
+            offence = crimeRepo.findByCasenumber(crime.casenumber);
             response.setRequestStatus(true);
             if (offence != null) {
                 if (offence.getOffencestatus().equalsIgnoreCase("Paid") || offence.getOffencestatus().equalsIgnoreCase("Closed")) {
@@ -75,12 +81,33 @@ public class CrimeService {
 
     public GeneralResponse fetchAllCases(GeneralRequest<CrimeDescriptionEntity> generalRequest) {
         response = new GeneralResponse();
+        CrimeDescriptionEntity descriptionEntity = new CrimeDescriptionEntity();
         try {
             response.setRequestStatus(true);
             response.setMessage("Success");
             response.setHttpStatus(HttpStatus.OK);
+            System.out.println("Offence status : " + descriptionEntity.getOffencestatus());
             response.setPayload(crimeRepo.findAll());
+
         } catch (Exception exception) {
+            exception.printStackTrace();
+            response.setRequestStatus(false);
+            response.setMessage("An Error occurred");
+            response.setHttpStatus(HttpStatus.EXPECTATION_FAILED);
+            response.setPayload(null);
+        }
+        return response;
+    }
+
+    public GeneralResponse fetchOffences(GeneralRequest<OffencesEntity> generalRequest) {
+        response = new GeneralResponse();
+        try {
+            response.setRequestStatus(true);
+            response.setMessage("Success");
+            response.setHttpStatus(HttpStatus.OK);
+            response.setPayload(offencesRepo.findAll());
+        } catch (Exception exception) {
+            exception.printStackTrace();
             response.setRequestStatus(false);
             response.setMessage("An Error occurred");
             response.setHttpStatus(HttpStatus.EXPECTATION_FAILED);
@@ -92,30 +119,88 @@ public class CrimeService {
     public GeneralResponse createCrime(GeneralRequest<CrimeDescriptionEntity> generalRequest) {
         response = new GeneralResponse();
         CrimeDescriptionEntity crime = generalRequest.getPayload();
-        CrimeDescriptionEntity descritionEntity = new CrimeDescriptionEntity();
-        String casenumber = new StringBuilder().append("5321").append(getRadom(2)).toString();
+        System.out.println("Offence desc" + crime.getOffence());
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
         java.sql.Date date = new java.sql.Date(System.currentTimeMillis());
-        Calendar calendar=Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance();
+        String casenumber = new StringBuilder().append("5321").append(getRadom(2)).toString();
+
+        int offence;
         try {
             OffencesEntity amount = offencesRepo.findByOffenceid(crime.getOffence());
-            descritionEntity.setCasenumber(casenumber);
-            descritionEntity.setCrime(amount.getOffencedescription());
-            descritionEntity.setExpirydate(date);
-            descritionEntity.setOffencedate(date);
-            descritionEntity.setLicensenumber(crime.getLicensenumber());
-            descritionEntity.setOffernderidnumber(crime.getOffernderidnumber());
-            descritionEntity.setOffenceamount(amount.getOffenceamount());
-            descritionEntity.setIssuerofficer(crime.getIssuerofficer());
-            descritionEntity.setOffernderidnumber(crime.getOffernderidnumber());
-            descritionEntity.setOffencestatus("Open");
-            descritionEntity.setVehiclenumber(crime.getVehiclenumber());
-            descritionEntity.setOffencelocation(crime.getOffencelocation());
-            descritionEntity.setMobilenumber(crime.getMobilenumber());
-            crimeRepo.save(descritionEntity);
+            System.out.println(amount.toString());
+            ControlNumbersEntity controlNumbersEntity = ControlNumbersEntity.builder()
+                    .caseNumber(Integer.valueOf(casenumber))
+                    .amount(amount.getOffenceamount())
+                    .description(amount.getOffencedescription())
+                    .offencelocation(crime.getOffencelocation())
+                    .offendernationalid(Integer.parseInt(crime.getOffernderidnumber()))
+                    .issuerofficer(crime.getIssuerofficer())
+                    .offencesByOffenceid(amount)
+                    .build();
+            controlNumber.save(controlNumbersEntity);
+            System.out.println("Save Control Number" + controlNumbersEntity.toString());
+            System.out.println("Offence "+crime.toString());
+            crime.setCasenumberEntity(controlNumbersEntity);
+            crime.setCrime(amount.getOffencedescription());
+            crime.setExpirydate(date);
+            crime.setOffencedate(date);
+            crime.setOffenceamount(amount.getOffenceamount());
+            crime.setOffencestatus("Open");
+            crime.setBalanceamount(amount.getOffenceamount());
+            crime.setApplicationUsersByUserid(usersRepo.findByUserid( crime.userid));
+            crime.casenumber = crime.getCasenumberEntity().getCaseNumber();
+            crimeRepo.save(crime);
+            controlNumber.save(controlNumbersEntity);
             response.setRequestStatus(true);
             response.setMessage("Success");
             response.setHttpStatus(HttpStatus.ACCEPTED);
+            response.setPayload(crime);
+        } catch (Exception exception) {
+
+            exception.printStackTrace();
+            response.setRequestStatus(false);
+            response.setMessage("An Error occurred");
+            response.setHttpStatus(HttpStatus.EXPECTATION_FAILED);
+            response.setPayload(null);
+        }
+        return response;
+    }
+
+    public GeneralResponse payCrime(GeneralRequest<CrimeDescriptionEntity> generalRequest) {
+        response = new GeneralResponse();
+        CrimeDescriptionEntity crime = generalRequest.getPayload();
+        response.setHttpStatus(HttpStatus.EXPECTATION_FAILED);
+        int casenumber = crime.casenumber;
+        response.setRequestStatus(false);
+        response.setMessage("Error");
+        try {
+            CrimeDescriptionEntity descritionEntity = crimeRepo.findByCasenumber(casenumber);
+            if (descritionEntity != null) {
+                int currentBalance = Integer.parseInt(descritionEntity.getBalanceamount());
+                int paymentAmount = Integer.parseInt(crime.getOffenceamount());
+                int payBalance = currentBalance - paymentAmount;
+                if (paymentAmount > currentBalance) {
+                    response.setHttpStatus(HttpStatus.EXPECTATION_FAILED);
+                    response.setRequestStatus(false);
+                    response.setMessage("Amount more than outstanding balance");
+
+                } else if (payBalance == 0) {
+                    descritionEntity.setOffencestatus("closed");
+                    descritionEntity.setBalanceamount(String.valueOf(payBalance));
+                    crimeRepo.save(descritionEntity);
+                    response.setRequestStatus(true);
+                    response.setHttpStatus(HttpStatus.ACCEPTED);
+                    response.setMessage("Payment Successful");
+                } else {
+                    response.setHttpStatus(HttpStatus.ACCEPTED);
+                    descritionEntity.setBalanceamount(String.valueOf(payBalance));
+                    crimeRepo.save(descritionEntity);
+                    response.setRequestStatus(true);
+                    response.setMessage("Payment Successful");
+                }
+
+            }
             response.setPayload(descritionEntity);
         } catch (Exception exception) {
             exception.printStackTrace();
@@ -127,3 +212,4 @@ public class CrimeService {
         return response;
     }
 }
+

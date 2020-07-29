@@ -1,14 +1,20 @@
 package com.traffic.police.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.ToString;
+
 import javax.persistence.*;
+import java.util.Collection;
 import java.util.Objects;
 
 @Entity
-@Table(name = "offences", schema = "traffic_offence", catalog = "")
+@Table(name = "offences", schema = "traffic_offence")
+@ToString(exclude = {"controlNumbersByOffenceid"})
 public class OffencesEntity {
     private int offenceid;
     private String offencedescription;
     private String offenceamount;
+    private Collection<ControlNumbersEntity> controlNumbersByOffenceid;
 
     @Id
     @Column(name = "offenceid")
@@ -53,5 +59,14 @@ public class OffencesEntity {
     @Override
     public int hashCode() {
         return Objects.hash(offenceid, offencedescription, offenceamount);
+    }
+    @JsonIgnore
+    @OneToMany(mappedBy = "offencesByOffenceid")
+    public Collection<ControlNumbersEntity> getControlNumbersByOffenceid() {
+        return controlNumbersByOffenceid;
+    }
+
+    public void setControlNumbersByOffenceid(Collection<ControlNumbersEntity> controlNumbersByOffenceid) {
+        this.controlNumbersByOffenceid = controlNumbersByOffenceid;
     }
 }

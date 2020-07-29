@@ -1,14 +1,20 @@
 package com.traffic.police.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.sql.Date;
 import java.util.Objects;
 
 @Entity
-@Table(name = "crime_description", schema = "traffic_offence", catalog = "")
+@Table(name = "crime_description", schema = "traffic_offence")
 public class CrimeDescriptionEntity {
+
+    @Transient
+    public int casenumber;
+    @Transient
+    public int userid;
     private int caseid;
-    private String casenumber;
     private String crime;
     private Date offencedate;
     private String offernderidnumber;
@@ -21,6 +27,11 @@ public class CrimeDescriptionEntity {
     private String offencelocation;
     private Integer offence;
     private String mobilenumber;
+    private String balanceamount;
+    @JsonIgnore
+    private ControlNumbersEntity controlNumbersByCasenumber;
+    @JsonIgnore
+    private ApplicationUsersEntity applicationUsersByUserid;
 
     @Id
     @Column(name = "caseid")
@@ -30,16 +41,6 @@ public class CrimeDescriptionEntity {
 
     public void setCaseid(int caseid) {
         this.caseid = caseid;
-    }
-
-    @Basic
-    @Column(name = "casenumber")
-    public String getCasenumber() {
-        return casenumber;
-    }
-
-    public void setCasenumber(String casenumber) {
-        this.casenumber = casenumber;
     }
 
     @Basic
@@ -162,13 +163,22 @@ public class CrimeDescriptionEntity {
         this.mobilenumber = mobilenumber;
     }
 
+    @Basic
+    @Column(name = "balanceamount")
+    public String getBalanceamount() {
+        return balanceamount;
+    }
+
+    public void setBalanceamount(String balanceamount) {
+        this.balanceamount = balanceamount;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         CrimeDescriptionEntity that = (CrimeDescriptionEntity) o;
         return caseid == that.caseid &&
-                Objects.equals(casenumber, that.casenumber) &&
                 Objects.equals(crime, that.crime) &&
                 Objects.equals(offencedate, that.offencedate) &&
                 Objects.equals(offernderidnumber, that.offernderidnumber) &&
@@ -180,11 +190,61 @@ public class CrimeDescriptionEntity {
                 Objects.equals(issuerofficer, that.issuerofficer) &&
                 Objects.equals(offencelocation, that.offencelocation) &&
                 Objects.equals(offence, that.offence) &&
-                Objects.equals(mobilenumber, that.mobilenumber);
+                Objects.equals(mobilenumber, that.mobilenumber) &&
+                Objects.equals(balanceamount, that.balanceamount);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(caseid, casenumber, crime, offencedate, offernderidnumber, offenceamount, offencestatus, expirydate, vehiclenumber, licensenumber, issuerofficer, offencelocation, offence, mobilenumber);
+        return Objects.hash(caseid, crime, offencedate, offernderidnumber, offenceamount, offencestatus, expirydate, vehiclenumber, licensenumber, issuerofficer, offencelocation, offence, mobilenumber, balanceamount);
     }
+
+    @OneToOne
+    @JoinColumn(name = "casenumber", referencedColumnName = "case_number")
+    public ControlNumbersEntity getCasenumberEntity() {
+        return controlNumbersByCasenumber;
+    }
+
+    public void setCasenumberEntity(ControlNumbersEntity controlNumbersByCasenumber) {
+        this.controlNumbersByCasenumber = controlNumbersByCasenumber;
+    }
+
+    @Override
+    public String toString() {
+        return "CrimeDescriptionEntity{" +
+                "casenumber=" + controlNumbersByCasenumber +
+                ", caseid=" + caseid +
+                ", crime='" + crime + '\'' +
+                ", offencedate=" + offencedate +
+                ", offernderidnumber='" + offernderidnumber + '\'' +
+                ", offenceamount='" + offenceamount + '\'' +
+                ", offencestatus='" + offencestatus + '\'' +
+                ", expirydate=" + expirydate +
+                ", vehiclenumber='" + vehiclenumber + '\'' +
+                ", licensenumber='" + licensenumber + '\'' +
+                ", issuerofficer='" + issuerofficer + '\'' +
+                ", offencelocation='" + offencelocation + '\'' +
+                ", offence=" + offence +
+                ", mobilenumber='" + mobilenumber + '\'' +
+                ", balanceamount='" + balanceamount + '\'' +
+                ", controlNumbersByCasenumber=" + controlNumbersByCasenumber +
+                ", applicationUsersByUserid=" + applicationUsersByUserid +
+                '}';
+    }
+
+    @ManyToOne
+    @JoinColumn(name = "userid", referencedColumnName = "userid")
+    public ApplicationUsersEntity getApplicationUsersByUserid() {
+        return applicationUsersByUserid;
+    }
+
+    public void setApplicationUsersByUserid(ApplicationUsersEntity applicationUsersByUserid) {
+        this.applicationUsersByUserid = applicationUsersByUserid;
+    }
+
+    @PostLoad
+    private void postLoad() {
+        this.casenumber = controlNumbersByCasenumber.getCaseNumber();
+    }
+
 }

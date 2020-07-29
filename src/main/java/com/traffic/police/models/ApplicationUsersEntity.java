@@ -1,21 +1,47 @@
 package com.traffic.police.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.sql.Date;
+import java.util.Collection;
 import java.util.Objects;
 
-@Entity
-@Table(name = "application_users", schema = "traffic_offence", catalog = "")
+@Entity()
+@Table(name = "application_users", schema = "traffic_offence")
 public class ApplicationUsersEntity {
     private int userid;
     private String fullName;
     private String email;
     private int idNumber;
     private Date regDate;
-    private String roleId;
     private String mobileNumber;
     private String password;
     private String userstatus;
+    @JsonIgnore
+    private RolesEntity rolesByRoleId;
+    @Transient
+    public String roleid;
+
+    @Override
+    public String toString() {
+        return "ApplicationUsersEntity{" +
+                "userid=" + userid +
+                ", fullName='" + fullName + '\'' +
+                ", email='" + email + '\'' +
+                ", idNumber=" + idNumber +
+                ", regDate=" + regDate +
+                ", mobileNumber='" + mobileNumber + '\'' +
+                ", password='" + password + '\'' +
+                ", userstatus='" + userstatus + '\'' +
+                ", rolesByRoleId=" + rolesByRoleId +
+                ", roleid='" + roleid + '\'' +
+                ", crimeDescriptionsByUserid=" + crimeDescriptionsByUserid +
+                '}';
+    }
+
+    @JsonIgnore
+    private Collection<CrimeDescriptionEntity> crimeDescriptionsByUserid;
 
     @Id
     @Column(name = "userid")
@@ -68,16 +94,6 @@ public class ApplicationUsersEntity {
     }
 
     @Basic
-    @Column(name = "role_id")
-    public String getRoleId() {
-        return roleId;
-    }
-
-    public void setRoleId(String roleId) {
-        this.roleId = roleId;
-    }
-
-    @Basic
     @Column(name = "mobile_number")
     public String getMobileNumber() {
         return mobileNumber;
@@ -117,7 +133,6 @@ public class ApplicationUsersEntity {
                 Objects.equals(fullName, entity.fullName) &&
                 Objects.equals(email, entity.email) &&
                 Objects.equals(regDate, entity.regDate) &&
-                Objects.equals(roleId, entity.roleId) &&
                 Objects.equals(mobileNumber, entity.mobileNumber) &&
                 Objects.equals(password, entity.password) &&
                 Objects.equals(userstatus, entity.userstatus);
@@ -125,6 +140,32 @@ public class ApplicationUsersEntity {
 
     @Override
     public int hashCode() {
-        return Objects.hash(userid, fullName, email, idNumber, regDate, roleId, mobileNumber, password, userstatus);
+        return Objects.hash(userid, fullName, email, idNumber, regDate, mobileNumber, password, userstatus);
+    }
+
+
+    @ManyToOne
+    @JoinColumn(name = "role_id", referencedColumnName = "roleid")
+    public RolesEntity getRolesByRoleId() {
+        return rolesByRoleId;
+    }
+
+    public void setRolesByRoleId(RolesEntity rolesByRoleId) {
+        this.rolesByRoleId = rolesByRoleId;
+    }
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "applicationUsersByUserid")
+    public Collection<CrimeDescriptionEntity> getCrimeDescriptionsByUserid() {
+        return crimeDescriptionsByUserid;
+    }
+
+    public void setCrimeDescriptionsByUserid(Collection<CrimeDescriptionEntity> crimeDescriptionsByUserid) {
+        this.crimeDescriptionsByUserid = crimeDescriptionsByUserid;
+    }
+
+    @PostLoad
+    private void postLoad(){
+        this.roleid = rolesByRoleId.getRoleid();
     }
 }

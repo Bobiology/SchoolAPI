@@ -1,38 +1,36 @@
 package com.traffic.police.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.*;
+
 import javax.persistence.*;
 import java.util.Objects;
 
+@Builder
 @Entity
-@Table(name = "control_numbers", schema = "traffic_offence", catalog = "")
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+@Table(name = "control_numbers", schema = "traffic_offence")
+@ToString(exclude = {"crimeDescriptionsByCaseNumber", "offencesByOffenceid"})
 public class ControlNumbersEntity {
     private int caseNumber;
-    private String offencelocation;
     private String issuerofficer;
     private String amount;
+    private String offencelocation;
     private String description;
-    private Integer offendernationalid;
-
+    private int offendernationalid;
+    private OffencesEntity offencesByOffenceid;
+    private CrimeDescriptionEntity crimeDescriptionsByCaseNumber;
 
     @Id
-    @Column(name="case_number",updatable=false,nullable=false)
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "case_number")
     public int getCaseNumber() {
         return caseNumber;
     }
 
     public void setCaseNumber(int caseNumber) {
         this.caseNumber = caseNumber;
-    }
-
-    @Basic
-    @Column(name = "offencelocation")
-    public String getOffencelocation() {
-        return offencelocation;
-    }
-
-    public void setOffencelocation(String offencelocation) {
-        this.offencelocation = offencelocation;
     }
 
     @Basic
@@ -56,6 +54,16 @@ public class ControlNumbersEntity {
     }
 
     @Basic
+    @Column(name = "offencelocation")
+    public String getOffencelocation() {
+        return offencelocation;
+    }
+
+    public void setOffencelocation(String offencelocation) {
+        this.offencelocation = offencelocation;
+    }
+
+    @Basic
     @Column(name = "Description")
     public String getDescription() {
         return description;
@@ -67,11 +75,11 @@ public class ControlNumbersEntity {
 
     @Basic
     @Column(name = "Offendernationalid")
-    public Integer getOffendernationalid() {
+    public int getOffendernationalid() {
         return offendernationalid;
     }
 
-    public void setOffendernationalid(Integer offendernationalid) {
+    public void setOffendernationalid(int offendernationalid) {
         this.offendernationalid = offendernationalid;
     }
 
@@ -81,15 +89,35 @@ public class ControlNumbersEntity {
         if (o == null || getClass() != o.getClass()) return false;
         ControlNumbersEntity that = (ControlNumbersEntity) o;
         return caseNumber == that.caseNumber &&
-                Objects.equals(offencelocation, that.offencelocation) &&
+                offendernationalid == that.offendernationalid &&
                 Objects.equals(issuerofficer, that.issuerofficer) &&
                 Objects.equals(amount, that.amount) &&
-                Objects.equals(description, that.description) &&
-                Objects.equals(offendernationalid, that.offendernationalid);
+                Objects.equals(offencelocation, that.offencelocation) &&
+                Objects.equals(description, that.description);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(caseNumber, offencelocation, issuerofficer, amount, description, offendernationalid);
+        return Objects.hash(caseNumber, issuerofficer, amount, offencelocation, description, offendernationalid);
     }
+    @JsonIgnore
+    @ManyToOne
+    @JoinColumn(name = "offenceid", referencedColumnName = "offenceid")
+    public OffencesEntity getOffencesByOffenceid() {
+        return offencesByOffenceid;
+    }
+
+    public void setOffencesByOffenceid(OffencesEntity offencesByOffenceid) {
+        this.offencesByOffenceid = offencesByOffenceid;
+    }
+    @JsonIgnore
+    @OneToOne(mappedBy = "casenumberEntity")
+    public CrimeDescriptionEntity getCrimeDescriptionsByCaseNumber() {
+        return crimeDescriptionsByCaseNumber;
+    }
+
+    public void setCrimeDescriptionsByCaseNumber(CrimeDescriptionEntity crimeDescriptionsByCaseNumber) {
+        this.crimeDescriptionsByCaseNumber = crimeDescriptionsByCaseNumber;
+    }
+
 }

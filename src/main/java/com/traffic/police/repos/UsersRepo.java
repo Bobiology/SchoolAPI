@@ -13,4 +13,8 @@ public interface UsersRepo extends JpaRepository<ApplicationUsersEntity, Long> {
 
     @Query("SELECT a FROM ApplicationUsersEntity a WHERE a.email = :email ")
     ApplicationUsersEntity findByEmail(@Param("email") String email);
+
+    @Query("SELECT a FROM ApplicationUsersEntity a WHERE a.userid = :userid ")
+    ApplicationUsersEntity findByUserid(@Param("userid") int userid);
+
 }
